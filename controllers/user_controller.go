@@ -7,23 +7,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"tevyt.io/pear-chat/server/dto"
+	"tevyt.io/pear-chat/server/services"
 )
 
-type UserController struct{}
-
-type User struct {
-	Name         string `json:"name"`
-	EmailAddress string `json:"emailAddress"`
-	Password     string `json:"password"`
-	PublicKey    string `json:"publicKey"`
+type UserController struct {
+	userService *services.UserService
 }
 
-func NewUserController() *UserController {
-	controller := UserController{}
+func NewUserController(userService *services.UserService) *UserController {
+	controller := UserController{userService: userService}
 	return &controller
 }
 func (controller *UserController) RegisterUser(context *gin.Context) {
-	user := User{
+	user := dto.User{
 		Name:         "",
 		EmailAddress: "",
 		Password:     "",
@@ -43,10 +39,17 @@ func (controller *UserController) RegisterUser(context *gin.Context) {
 		context.JSON(400, dto.NewGenericeMessage(err.Error()))
 		return
 	}
+
+	err = controller.userService.RegisterUser(&dto.User{})
+
+	if err != nil {
+		context.JSON(500, dto.NewGenericeMessage(err.Error()))
+	}
+
 	context.JSON(200, dto.NewGenericeMessage("User registered."))
 }
 
-func validate(user *User) error {
+func validate(user *dto.User) error {
 	if len(user.Name) == 0 {
 		return errors.New("name is mandatory")
 	}
