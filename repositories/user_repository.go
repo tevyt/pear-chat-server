@@ -4,7 +4,11 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type UserRepository struct {
+type UserRepository interface {
+	RegisterUser(user UserModel) error
+}
+
+type UserRepositoryImpl struct {
 	dbConnection *sqlx.DB
 }
 
@@ -15,11 +19,11 @@ type UserModel struct {
 	PublicKey    string `db:"public_key"`
 }
 
-func NewUserRepository(dbConnection *sqlx.DB) *UserRepository {
-	return &UserRepository{dbConnection: dbConnection}
+func NewUserRepository(dbConnection *sqlx.DB) *UserRepositoryImpl {
+	return &UserRepositoryImpl{dbConnection: dbConnection}
 }
 
-func (userRepository *UserRepository) RegisterUser(user *UserModel) error {
+func (userRepository *UserRepositoryImpl) RegisterUser(user UserModel) error {
 	registerUserQuery := "INSERT INTO app_user (email_address, user_name, password_hash, public_key) VALUES (:email_address, :user_name, :password_hash, :public_key)"
 
 	_, err := userRepository.dbConnection.NamedExec(registerUserQuery, user)
