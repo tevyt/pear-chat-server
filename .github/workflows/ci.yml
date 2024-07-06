@@ -30,13 +30,7 @@ jobs:
     - name: Test
       run: go test -v -coverprofile=cov.out ./...
 
-  sonarcloud:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: 
-          fetch-depth: 0
-      - name: SonarCloud 
-        uses: sonarsource/sonarcloud-github-action@v2.3.0
-        env:
+    - name: Code Analysis
+      uses: sonarsource/sonarcloud-github-action@v2.3.0
+      env:
          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
