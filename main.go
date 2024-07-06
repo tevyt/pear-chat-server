@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"tevyt.io/pear-chat/server/controllers"
 	"tevyt.io/pear-chat/server/repositories"
 	"tevyt.io/pear-chat/server/services"
@@ -28,16 +30,27 @@ func main() {
 		log.Fatalf("Unable to open db connection: %v", err)
 	}
 
+	ctx := context.Background()
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
 	defer db.Close()
+	defer redisClient.Close()
+
+	userRepository := repositories.NewUserRepository(db)
+	cacheService := services.NewRedisCacheService(redisClient, &ctx)
 
 	router := gin.Default()
 
-	userRepository := repositories.NewUserRepository(db)
-	userController := controllers.NewUserController(services.NewUserService(userRepository))
+	userController := controllers.NewUserController(services.NewUserService(userRepository, cacheService))
 
 	userRoutes := router.Group("/api/user")
 	{
 		userRoutes.POST("/", userController.RegisterUser)
+		userRoutes.POST("/login", userController.Login)
 	}
 
 	router.Run()
