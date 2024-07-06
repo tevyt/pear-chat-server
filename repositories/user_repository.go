@@ -6,6 +6,7 @@ import (
 
 type UserRepository interface {
 	RegisterUser(user UserModel) error
+	FindUserByEmailAddress(emailAddress string) (UserModel, error)
 }
 
 type UserRepositoryImpl struct {
@@ -29,4 +30,16 @@ func (userRepository *UserRepositoryImpl) RegisterUser(user UserModel) error {
 	_, err := userRepository.dbConnection.NamedExec(registerUserQuery, user)
 
 	return err
+}
+
+func (userRepository *UserRepositoryImpl) FindUserByEmailAddress(emailAddress string) (UserModel, error) {
+	findUserByEmailAddressQuery := "SELECT email_address, user_name, password_hash, public_key FROM app_user WHERE email_address = $1 LIMIT 1"
+
+	model := UserModel{}
+
+	row := userRepository.dbConnection.QueryRow(findUserByEmailAddressQuery, emailAddress)
+
+	err := row.Scan(&model.EmailAddress, &model.UserName, &model.PasswordHash, &model.PublicKey)
+
+	return model, err
 }
