@@ -6,17 +6,21 @@ import (
 	"tevyt.io/pear-chat/server/repositories"
 )
 
-type UserService struct {
-	userRepository *repositories.UserRepository
+type UserService interface {
+	RegisterUser(user dto.User) error
 }
 
-func NewUserService(userRepository *repositories.UserRepository) *UserService {
-	return &UserService{
+type UserServiceImpl struct {
+	userRepository repositories.UserRepository
+}
+
+func NewUserService(userRepository repositories.UserRepository) *UserServiceImpl {
+	return &UserServiceImpl{
 		userRepository: userRepository,
 	}
 }
 
-func (userService *UserService) RegisterUser(user *dto.User) error {
+func (userService *UserServiceImpl) RegisterUser(user dto.User) error {
 	bcryptRounds := 12
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcryptRounds)
 
@@ -25,7 +29,7 @@ func (userService *UserService) RegisterUser(user *dto.User) error {
 	}
 	userModel := repositories.UserModel{EmailAddress: user.EmailAddress, UserName: user.Name, PasswordHash: string(passwordHash), PublicKey: user.PublicKey}
 
-	err = userService.userRepository.RegisterUser(&userModel)
+	err = userService.userRepository.RegisterUser(userModel)
 
 	return err
 }

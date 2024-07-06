@@ -11,13 +11,13 @@ import (
 )
 
 type UserController struct {
-	userService *services.UserService
+	userService services.UserService
 }
 
-func NewUserController(userService *services.UserService) *UserController {
-	controller := UserController{userService: userService}
-	return &controller
+func NewUserController(userService services.UserService) *UserController {
+	return &UserController{userService: userService}
 }
+
 func (controller *UserController) RegisterUser(context *gin.Context) {
 	user := dto.User{
 		Name:         "",
@@ -34,22 +34,23 @@ func (controller *UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
-	err = validate(&user)
+	err = validate(user)
 	if err != nil {
 		context.JSON(400, dto.NewGenericeMessage(err.Error()))
 		return
 	}
 
-	err = controller.userService.RegisterUser(&dto.User{})
+	err = controller.userService.RegisterUser(dto.User{})
 
 	if err != nil {
 		context.JSON(500, dto.NewGenericeMessage(err.Error()))
+		return
 	}
 
 	context.JSON(200, dto.NewGenericeMessage("User registered."))
 }
 
-func validate(user *dto.User) error {
+func validate(user dto.User) error {
 	if len(user.Name) == 0 {
 		return errors.New("name is mandatory")
 	}
