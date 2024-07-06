@@ -29,5 +29,4 @@ func TestRegisterUserCreatesAUserWithAHashedPassword(t *testing.T) {
 	if err != nil {
 		t.Errorf("Password hash does not match password.")
 	}
-
 }
