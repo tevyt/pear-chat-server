@@ -30,3 +30,13 @@ func (userRepository *UserRepositoryImpl) RegisterUser(user UserModel) error {
 
 	return err
 }
+
+func (userRepository *UserRepositoryImpl) FindUserByEmailAddress(emailAddress string) (UserModel, error) {
+	findUserByEmailAddressQuery := "SELECT * FROM app_user WHERE email_address = :email_address"
+
+	model := UserModel{}
+
+	err := userRepository.dbConnection.Select(&model, findUserByEmailAddressQuery, emailAddress)
+
+	return model, err
+}
