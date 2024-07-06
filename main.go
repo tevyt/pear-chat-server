@@ -32,9 +32,9 @@ func main() {
 
 	ctx := context.Background()
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     environmentVariables["REDIS_HOST"] + ":" + environmentVariables["REDIS_PORT"],
+		Password: environmentVariables["REDIS_PASSWORD"], // no password set
+		DB:       0,                                      // use default DB
 	})
 
 	defer db.Close()
