@@ -1,11 +1,13 @@
 package services
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"tevyt.io/pear-chat/server/dto"
+	"tevyt.io/pear-chat/server/handling"
 	"tevyt.io/pear-chat/server/repositories"
 )
 
@@ -45,15 +47,16 @@ func (userService *UserServiceImpl) Login(user dto.User) (dto.LoginSuccess, erro
 	model, err := userService.userRepository.FindUserByEmailAddress(user.EmailAddress)
 
 	if err != nil {
-		fmt.Printf("Could not find user - %v\n", err)
+		if err == sql.ErrNoRows {
+			return dto.LoginSuccess{}, handling.NewAuthenticationError("No user found")
+		}
 		return dto.LoginSuccess{}, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(model.PasswordHash), []byte(user.Password))
 
 	if err != nil {
-		fmt.Printf("Password does not match - %v\n", err)
-		return dto.LoginSuccess{}, err
+		return dto.LoginSuccess{}, handling.NewAuthenticationError("Password does not match")
 	}
 
 	sessionId := uuid.NewString()

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"tevyt.io/pear-chat/server/dto"
+	"tevyt.io/pear-chat/server/handling"
 	"tevyt.io/pear-chat/server/services"
 )
 
@@ -57,7 +58,12 @@ func (controller *UserController) Login(context *gin.Context) {
 	loginSuccess, err := controller.userService.Login(user)
 
 	if err != nil {
-		context.JSON(401, dto.NewGenericeMessage("Invalid email address or password"))
+		_, isAuthenticationError := err.(handling.AuthenticationError)
+		if isAuthenticationError {
+			context.JSON(401, dto.NewGenericeMessage("Invalid email address or password"))
+		} else {
+			context.JSON(500, dto.NewGenericeMessage("An error occured with login"))
+		}
 		return
 	}
 

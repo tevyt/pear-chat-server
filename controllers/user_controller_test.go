@@ -11,23 +11,31 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"tevyt.io/pear-chat/server/dto"
+	"tevyt.io/pear-chat/server/handling"
 )
 
 type UserServiceMock struct {
-	user dto.User
+	user        dto.User
+	InduceError bool
 }
 
 func (userService *UserServiceMock) RegisterUser(user dto.User) error {
+	if userService.InduceError {
+		return errors.New("Error occured")
+	}
 	userService.user = user
 	return nil
 }
 
 func (userService *UserServiceMock) Login(user dto.User) (dto.LoginSuccess, error) {
+	if userService.InduceError {
+		return dto.LoginSuccess{}, errors.New("Error occured.")
+	}
 	if userService.user.EmailAddress == user.EmailAddress {
 		return dto.LoginSuccess{EmailAddress: user.EmailAddress, SessionID: "123"}, nil
 	}
 
-	return dto.LoginSuccess{}, errors.New("Unable to login")
+	return dto.LoginSuccess{}, handling.NewAuthenticationError("Invalid credentials")
 }
 
 func Test200ResponseWhenUserRegisteredSuccessfully(t *testing.T) {
@@ -57,18 +65,8 @@ func Test200ResponseWhenUserRegisteredSuccessfully(t *testing.T) {
 
 }
 
-type UserServiceErrorMock struct{}
-
-func (userService *UserServiceErrorMock) RegisterUser(dto.User) error {
-	return errors.New("Mock error")
-}
-
-func (userService *UserServiceErrorMock) Login(dto.User) (dto.LoginSuccess, error) {
-	return dto.LoginSuccess{}, errors.New("Error in login.")
-}
-
 func Test500IfUserServiceReturnsAnError(t *testing.T) {
-	userController := NewUserController(&UserServiceErrorMock{})
+	userController := NewUserController(&UserServiceMock{InduceError: true})
 
 	context := buildGinContext(dto.User{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
 
@@ -103,7 +101,20 @@ func TestLoginUnsuccessful(t *testing.T) {
 	if context.Writer.Status() != 401 {
 		t.Error("Expected unauthorized status.")
 	}
+}
 
+func TestLoginError(t *testing.T) {
+	userServiceMock := buildUserServiceMock()
+	userController := NewUserController(userServiceMock)
+	userServiceMock.InduceError = true
+
+	context := buildGinContext(dto.User{EmailAddress: "fail@test.com", Password: "password123"})
+
+	userController.Login(context)
+
+	if context.Writer.Status() != 500 {
+		t.Error("Expected internal server error status.")
+	}
 }
 
 func buildUserServiceMock() *UserServiceMock {
