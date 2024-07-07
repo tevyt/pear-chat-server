@@ -11,9 +11,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
-	"tevyt.io/pear-chat/server/controllers"
-	"tevyt.io/pear-chat/server/repositories"
-	"tevyt.io/pear-chat/server/services"
+	"tevyt.io/pear-chat/server/cache"
+	"tevyt.io/pear-chat/server/user"
 )
 
 func main() {
@@ -40,12 +39,12 @@ func main() {
 	defer db.Close()
 	defer redisClient.Close()
 
-	userRepository := repositories.NewUserRepository(db)
-	cacheService := services.NewRedisCacheService(redisClient, &ctx)
+	userRepository := user.NewUserRepository(db)
+	cacheService := cache.NewRedisCacheService(redisClient, &ctx)
 
 	router := gin.Default()
 
-	userController := controllers.NewUserController(services.NewUserService(userRepository, cacheService))
+	userController := user.NewUserController(user.NewUserService(userRepository, cacheService))
 
 	userRoutes := router.Group("/api/user")
 	{

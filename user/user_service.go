@@ -1,4 +1,4 @@
-package services
+package user
 
 import (
 	"database/sql"
@@ -6,29 +6,28 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"tevyt.io/pear-chat/server/dto"
+	"tevyt.io/pear-chat/server/cache"
 	"tevyt.io/pear-chat/server/handling"
-	"tevyt.io/pear-chat/server/repositories"
 )
 
 type UserService interface {
-	RegisterUser(user dto.User) error
-	Login(user dto.User) (dto.LoginSuccess, error)
+	RegisterUser(user UserDTO) error
+	Login(user UserDTO) (LoginSuccessDTO, error)
 }
 
 type UserServiceImpl struct {
-	userRepository repositories.UserRepository
-	cache          CacheService
+	userRepository UserRepository
+	cache          cache.CacheService
 }
 
-func NewUserService(userRepository repositories.UserRepository, cache CacheService) *UserServiceImpl {
+func NewUserService(userRepository UserRepository, cache cache.CacheService) *UserServiceImpl {
 	return &UserServiceImpl{
 		userRepository: userRepository,
 		cache:          cache,
 	}
 }
 
-func (userService *UserServiceImpl) RegisterUser(user dto.User) error {
+func (userService *UserServiceImpl) RegisterUser(user UserDTO) error {
 	bcryptRounds := 12
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcryptRounds)
 
@@ -36,27 +35,27 @@ func (userService *UserServiceImpl) RegisterUser(user dto.User) error {
 		return err
 	}
 
-	userModel := repositories.UserModel{EmailAddress: user.EmailAddress, UserName: user.Name, PasswordHash: string(passwordHash), PublicKey: user.PublicKey}
+	userModel := UserModel{EmailAddress: user.EmailAddress, UserName: user.Name, PasswordHash: string(passwordHash), PublicKey: user.PublicKey}
 
 	err = userService.userRepository.RegisterUser(userModel)
 
 	return err
 }
 
-func (userService *UserServiceImpl) Login(user dto.User) (dto.LoginSuccess, error) {
+func (userService *UserServiceImpl) Login(user UserDTO) (LoginSuccessDTO, error) {
 	model, err := userService.userRepository.FindUserByEmailAddress(user.EmailAddress)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return dto.LoginSuccess{}, handling.NewAuthenticationError("No user found")
+			return LoginSuccessDTO{}, handling.NewAuthenticationError("No user found")
 		}
-		return dto.LoginSuccess{}, err
+		return LoginSuccessDTO{}, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(model.PasswordHash), []byte(user.Password))
 
 	if err != nil {
-		return dto.LoginSuccess{}, handling.NewAuthenticationError("Password does not match")
+		return LoginSuccessDTO{}, handling.NewAuthenticationError("Password does not match")
 	}
 
 	sessionId := uuid.NewString()
@@ -65,10 +64,10 @@ func (userService *UserServiceImpl) Login(user dto.User) (dto.LoginSuccess, erro
 
 	if err != nil {
 		fmt.Printf("Unable to write session id - %v", err)
-		return dto.LoginSuccess{}, err
+		return LoginSuccessDTO{}, err
 	}
 
-	loginSuccess := dto.LoginSuccess{
+	loginSuccess := LoginSuccessDTO{
 		Name:         model.UserName,
 		EmailAddress: model.EmailAddress,
 		SessionID:    sessionId,

@@ -1,4 +1,4 @@
-package controllers
+package user
 
 import (
 	"encoding/json"
@@ -6,16 +6,15 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"tevyt.io/pear-chat/server/dto"
+	"tevyt.io/pear-chat/server/global"
 	"tevyt.io/pear-chat/server/handling"
-	"tevyt.io/pear-chat/server/services"
 )
 
 type UserController struct {
-	userService services.UserService
+	userService UserService
 }
 
-func NewUserController(userService services.UserService) *UserController {
+func NewUserController(userService UserService) *UserController {
 	return &UserController{userService: userService}
 }
 
@@ -24,8 +23,7 @@ func (controller *UserController) RegisterUser(context *gin.Context) {
 	user, err := getUserDtoFromRequest(context)
 
 	if err != nil {
-		fmt.Printf("Error parsing request body %v\n", err)
-		context.JSON(422, dto.NewGenericeMessage("Could not parse request body."))
+		context.JSON(422, global.NewGenericeMessageDTO("Could not parse request body."))
 		return
 	}
 
@@ -33,24 +31,24 @@ func (controller *UserController) RegisterUser(context *gin.Context) {
 	err = validate(user)
 
 	if err != nil {
-		context.JSON(400, dto.NewGenericeMessage(err.Error()))
+		context.JSON(400, global.NewGenericeMessageDTO(err.Error()))
 		return
 	}
 
 	err = controller.userService.RegisterUser(user)
 
 	if err != nil {
-		context.JSON(500, dto.NewGenericeMessage(err.Error()))
+		context.JSON(500, global.NewGenericeMessageDTO(err.Error()))
 		return
 	}
 
-	context.JSON(200, dto.NewGenericeMessage("User registered."))
+	context.JSON(200, global.NewGenericeMessageDTO("User registered."))
 }
 
 func (controller *UserController) Login(context *gin.Context) {
 	user, err := getUserDtoFromRequest(context)
 	if err != nil {
-		context.JSON(422, dto.NewGenericeMessage("Could not parse request body."))
+		context.JSON(422, global.NewGenericeMessageDTO("Could not parse request body."))
 		return
 	}
 
@@ -60,9 +58,9 @@ func (controller *UserController) Login(context *gin.Context) {
 	if err != nil {
 		_, isAuthenticationError := err.(handling.AuthenticationError)
 		if isAuthenticationError {
-			context.JSON(401, dto.NewGenericeMessage("Invalid email address or password"))
+			context.JSON(401, global.NewGenericeMessageDTO("Invalid email address or password"))
 		} else {
-			context.JSON(500, dto.NewGenericeMessage("An error occured with login"))
+			context.JSON(500, global.NewGenericeMessageDTO("An error occured with login"))
 		}
 		return
 	}
@@ -70,7 +68,7 @@ func (controller *UserController) Login(context *gin.Context) {
 	context.JSON(200, loginSuccess)
 }
 
-func validate(user dto.User) error {
+func validate(user UserDTO) error {
 	if len(user.Name) == 0 {
 		return errors.New("name is mandatory")
 	}
@@ -90,8 +88,8 @@ func validate(user dto.User) error {
 	return nil
 }
 
-func getUserDtoFromRequest(context *gin.Context) (dto.User, error) {
-	user := dto.User{
+func getUserDtoFromRequest(context *gin.Context) (UserDTO, error) {
+	user := UserDTO{
 		Name:         "",
 		EmailAddress: "",
 		Password:     "",
@@ -99,8 +97,6 @@ func getUserDtoFromRequest(context *gin.Context) (dto.User, error) {
 	}
 
 	err := json.NewDecoder(context.Request.Body).Decode(&user)
-
-	fmt.Printf("After decode %v\n", err)
 
 	return user, err
 }
