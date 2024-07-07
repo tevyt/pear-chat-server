@@ -1,6 +1,6 @@
-package dto
+package user
 
-type LoginSuccess struct {
+type LoginSuccessDTO struct {
 	EmailAddress string `json:"emailAddress"`
 	Name         string `json:"name"`
 	SessionID    string `json:"sessionID"`

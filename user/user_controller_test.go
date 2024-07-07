@@ -1,4 +1,4 @@
-package controllers
+package user
 
 import (
 	"bytes"
@@ -10,16 +10,15 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"tevyt.io/pear-chat/server/dto"
 	"tevyt.io/pear-chat/server/handling"
 )
 
 type UserServiceMock struct {
-	user        dto.User
+	user        UserDTO
 	InduceError bool
 }
 
-func (userService *UserServiceMock) RegisterUser(user dto.User) error {
+func (userService *UserServiceMock) RegisterUser(user UserDTO) error {
 	if userService.InduceError {
 		return errors.New("Error occured")
 	}
@@ -27,15 +26,15 @@ func (userService *UserServiceMock) RegisterUser(user dto.User) error {
 	return nil
 }
 
-func (userService *UserServiceMock) Login(user dto.User) (dto.LoginSuccess, error) {
+func (userService *UserServiceMock) Login(user UserDTO) (LoginSuccessDTO, error) {
 	if userService.InduceError {
-		return dto.LoginSuccess{}, errors.New("Error occured.")
+		return LoginSuccessDTO{}, errors.New("Error occured.")
 	}
 	if userService.user.EmailAddress == user.EmailAddress {
-		return dto.LoginSuccess{EmailAddress: user.EmailAddress, SessionID: "123"}, nil
+		return LoginSuccessDTO{EmailAddress: user.EmailAddress, SessionID: "123"}, nil
 	}
 
-	return dto.LoginSuccess{}, handling.NewAuthenticationError("Invalid credentials")
+	return LoginSuccessDTO{}, handling.NewAuthenticationError("Invalid credentials")
 }
 
 func Test200ResponseWhenUserRegisteredSuccessfully(t *testing.T) {
@@ -49,7 +48,7 @@ func Test200ResponseWhenUserRegisteredSuccessfully(t *testing.T) {
 	context.Request.Method = "POST"
 	context.Request.Header.Set("content-type", "application/json")
 
-	requestBody, _ := json.Marshal(dto.User{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
+	requestBody, _ := json.Marshal(UserDTO{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
 
 	context.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 
@@ -68,7 +67,7 @@ func Test200ResponseWhenUserRegisteredSuccessfully(t *testing.T) {
 func Test500IfUserServiceReturnsAnError(t *testing.T) {
 	userController := NewUserController(&UserServiceMock{InduceError: true})
 
-	context := buildGinContext(dto.User{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
+	context := buildGinContext(UserDTO{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
 
 	userController.RegisterUser(context)
 
@@ -81,7 +80,7 @@ func TestLogin200IfSuccessful(t *testing.T) {
 	userServiceMock := buildUserServiceMock()
 	userController := NewUserController(userServiceMock)
 
-	context := buildGinContext(dto.User{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
+	context := buildGinContext(UserDTO{Name: "Test", EmailAddress: "test@test.com", Password: "password123", PublicKey: "123"})
 
 	userController.Login(context)
 
@@ -94,7 +93,7 @@ func TestLoginUnsuccessful(t *testing.T) {
 	userServiceMock := buildUserServiceMock()
 	userController := NewUserController(userServiceMock)
 
-	context := buildGinContext(dto.User{EmailAddress: "fail@test.com", Password: "password123"})
+	context := buildGinContext(UserDTO{EmailAddress: "fail@test.com", Password: "password123"})
 
 	userController.Login(context)
 
@@ -108,7 +107,7 @@ func TestLoginError(t *testing.T) {
 	userController := NewUserController(userServiceMock)
 	userServiceMock.InduceError = true
 
-	context := buildGinContext(dto.User{EmailAddress: "fail@test.com", Password: "password123"})
+	context := buildGinContext(UserDTO{EmailAddress: "fail@test.com", Password: "password123"})
 
 	userController.Login(context)
 
@@ -119,14 +118,14 @@ func TestLoginError(t *testing.T) {
 
 func buildUserServiceMock() *UserServiceMock {
 	return &UserServiceMock{
-		user: dto.User{
+		user: UserDTO{
 			EmailAddress: "test@test.com",
 			Password:     "password123",
 		},
 	}
 }
 
-func buildGinContext(user dto.User) *gin.Context {
+func buildGinContext(user UserDTO) *gin.Context {
 	httpRecorder := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(httpRecorder)
 	context.Request = &http.Request{Header: make(http.Header)}

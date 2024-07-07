@@ -1,33 +1,31 @@
-package services
+package user
 
 import (
 	"errors"
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
-	"tevyt.io/pear-chat/server/dto"
-	"tevyt.io/pear-chat/server/repositories"
 )
 
 type UserRepositoryMock struct {
-	userModel *repositories.UserModel
+	userModel *UserModel
 }
 
-func (repository *UserRepositoryMock) RegisterUser(user repositories.UserModel) error {
+func (repository *UserRepositoryMock) RegisterUser(user UserModel) error {
 	repository.userModel = &user
 	return nil
 }
 
-func (repository *UserRepositoryMock) FindUserByEmailAddress(emailAddress string) (repositories.UserModel, error) {
+func (repository *UserRepositoryMock) FindUserByEmailAddress(emailAddress string) (UserModel, error) {
 	if repository.userModel == nil {
-		return repositories.UserModel{}, errors.New("User not found.")
+		return UserModel{}, errors.New("User not found.")
 	}
 
 	if repository.userModel.EmailAddress == emailAddress {
 		return *repository.userModel, nil
 	}
 
-	return repositories.UserModel{}, errors.New("User not found.")
+	return UserModel{}, errors.New("User not found.")
 }
 
 type CacheServiceMock struct {
@@ -57,7 +55,7 @@ func TestRegisterUserCreatesAUserWithAHashedPassword(t *testing.T) {
 
 	userService := NewUserService(repository, cache)
 
-	userService.RegisterUser(dto.User{Name: "Test", EmailAddress: "test@testing.com", Password: "password123", PublicKey: "key"})
+	userService.RegisterUser(UserDTO{Name: "Test", EmailAddress: "test@testing.com", Password: "password123", PublicKey: "key"})
 
 	err := bcrypt.CompareHashAndPassword([]byte(repository.userModel.PasswordHash), []byte("password123"))
 
@@ -72,7 +70,7 @@ func TestLoginSuccess(t *testing.T) {
 
 	userService := NewUserService(repository, cache)
 
-	loginSuccess, err := userService.Login(dto.User{EmailAddress: "test@testing.com", Password: "password123"})
+	loginSuccess, err := userService.Login(UserDTO{EmailAddress: "test@testing.com", Password: "password123"})
 
 	if err != nil {
 		t.Error("Error when loggin in.")
@@ -97,7 +95,7 @@ func TestLoginInvalidPassword(t *testing.T) {
 
 	userService := NewUserService(repository, cache)
 
-	_, err := userService.Login(dto.User{EmailAddress: "test@testing.com", Password: "password"})
+	_, err := userService.Login(UserDTO{EmailAddress: "test@testing.com", Password: "password"})
 
 	if err == nil {
 		t.Error("Expected error.")
@@ -110,7 +108,7 @@ func TestLoginInvalidEmailAddress(t *testing.T) {
 	cache := &CacheServiceMock{}
 
 	userService := NewUserService(repository, cache)
-	_, err := userService.Login(dto.User{EmailAddress: "fail@testing.com", Password: "password123"})
+	_, err := userService.Login(UserDTO{EmailAddress: "fail@testing.com", Password: "password123"})
 
 	if err == nil {
 		t.Error("Expected error.")
@@ -121,7 +119,7 @@ func TestLoginInvalidEmailAddress(t *testing.T) {
 func getRepositoryMock() *UserRepositoryMock {
 	hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 	return &UserRepositoryMock{
-		userModel: &repositories.UserModel{
+		userModel: &UserModel{
 			UserName:     "Test",
 			EmailAddress: "test@testing.com",
 			PasswordHash: string(hash),

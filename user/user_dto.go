@@ -1,6 +1,6 @@
-package dto
+package user
 
-type User struct {
+type UserDTO struct {
 	Name         string `json:"name"`
 	EmailAddress string `json:"emailAddress"`
 	Password     string `json:"password"`
